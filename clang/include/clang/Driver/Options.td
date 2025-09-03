@@ -9099,6 +9099,8 @@ def metal : DXCFlag<"metal">, HelpText<"Generate Metal library">;
 def fspv_target_env_EQ : Joined<["-"], "fspv-target-env=">, Group<dxc_Group>,
   HelpText<"Specify the target environment">,
   Values<"vulkan1.2, vulkan1.3">;
+
+// WebAssembly-only Options
 def no_wasm_opt : Flag<["--"], "no-wasm-opt">,
   Group<m_Group>,
   HelpText<"Disable the wasm-opt optimizer">,
@@ -9107,3 +9109,8 @@ def wasm_opt : Flag<["--"], "wasm-opt">,
   Group<m_Group>,
   HelpText<"Enable the wasm-opt optimizer (default)">,
   MarshallingInfoNegativeFlag<LangOpts<"NoWasmOpt">>;
+def fwasm_fix_function_bitcasts : Flag<["-"], "fwasm-fix-function-bitcasts">,
+  Group<f_Group>,
+  HelpText<"Enable auto-generation of thunks for mismatched function pointer casts in WebAssembly">,
+  Visibility<[ClangOption, CC1Option]>,
+  MarshallingInfoFlag<LangOpts<"WasmFixFunctionBitcasts">>;
