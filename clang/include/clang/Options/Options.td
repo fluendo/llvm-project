@@ -9757,6 +9757,14 @@ def fhlsl_spv_enable_maximal_reconvergence
                "well-defined merge points as defined by the Vulkan spec.">,
       MarshallingInfoFlag<LangOpts<"HLSLSpvEnableMaximalReconvergence">>;
 
+def fexperimental_emit_sgep
+    : Flag<["-"], "fexperimental-emit-sgep">,
+      Visibility<[CC1Option, DXCOption]>,
+      HelpText<"Emit structured GEP intrinsic instead of GEP instructions "
+               "(experimental).">,
+      MarshallingInfoFlag<LangOpts<"EmitStructuredGEP">>;
+
+// WebAssembly-only Options
 def no_wasm_opt : Flag<["--"], "no-wasm-opt">,
   Group<m_Group>,
   HelpText<"Disable the wasm-opt optimizer">,
@@ -9765,3 +9773,8 @@ def wasm_opt : Flag<["--"], "wasm-opt">,
   Group<m_Group>,
   HelpText<"Enable the wasm-opt optimizer (default)">,
   MarshallingInfoNegativeFlag<LangOpts<"NoWasmOpt">>;
+def fwasm_fix_function_bitcasts : Flag<["-"], "fwasm-fix-function-bitcasts">,
+  Group<f_Group>,
+  HelpText<"Enable auto-generation of thunks for mismatched function pointer casts in WebAssembly">,
+  Visibility<[ClangOption, CC1Option]>,
+  MarshallingInfoFlag<LangOpts<"WasmFixFunctionBitcasts">>;
