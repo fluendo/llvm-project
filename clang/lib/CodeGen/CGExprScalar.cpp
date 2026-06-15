@@ -2826,10 +2826,11 @@ Value *ScalarExprEmitter::VisitCastExpr(CastExpr *CE) {
       if (auto Provenance = CGF.getWasmFunctionPointerProvenance(IntResult)) {
         llvm::Value *FnPtr = Provenance->FunctionPointer;
         QualType FnPtrType = Provenance->FunctionPointerType;
+        llvm::Function *Thunk =
+            CGF.CGM.getTargetCodeGenInfo().getOrCreateWasmFunctionPointerThunk(
+                CGF.CGM, FnPtr, FnPtrType, DestTy);
 
-        if (llvm::Function *Thunk =
-                CGF.CGM.getTargetCodeGenInfo().getOrCreateWasmFunctionPointerThunk(
-                    CGF.CGM, FnPtr, FnPtrType, DestTy))
+        if (Thunk)
           return Thunk;
 
         if (!isa<llvm::Constant>(FnPtr)) {

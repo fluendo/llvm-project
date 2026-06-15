@@ -94,7 +94,7 @@ CodeGenFunction::CodeGenFunction(CodeGenModule &cgm, bool suppressNewContext)
 void CodeGenFunction::recordWasmFunctionPointerProvenance(
     llvm::Value *IntegerValue, llvm::Value *FunctionPointer,
     QualType FunctionPointerType) {
-  if (!IntegerValue || !FunctionPointer ||
+  if (!IntegerValue || !FunctionPointer || FunctionPointerType.isNull() ||
       !FunctionPointerType->isFunctionPointerType())
     return;
 
