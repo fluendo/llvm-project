@@ -2834,9 +2834,10 @@ Value *ScalarExprEmitter::VisitCastExpr(CastExpr *CE) {
           return Thunk;
 
         if (!isa<llvm::Constant>(FnPtr)) {
-          if (llvm::Value *RuntimeThunk = CGF.CGM.getTargetCodeGenInfo()
-                                              .emitWasmRuntimeFunctionPointerBinding(
-                                                  CGF, FnPtr, FnPtrType, DestTy))
+          llvm::Value *RuntimeThunk = CGF.CGM.getTargetCodeGenInfo()
+                                          .emitWasmRuntimeFunctionPointerBinding(
+                                              CGF, FnPtr, FnPtrType, DestTy);
+          if (RuntimeThunk)
             return RuntimeThunk;
         }
       }

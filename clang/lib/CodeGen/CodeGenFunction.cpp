@@ -122,11 +122,12 @@ CodeGenFunction::getWasmFunctionPointerProvenance(llvm::Value *Value) const {
     case llvm::Instruction::BitCast:
     case llvm::Instruction::PtrToInt: {
       llvm::Value *Operand = Cast->getOperand(0);
-      if (!Operand->getType()->isIntOrIntVectorTy() &&
-          !Operand->getType()->isPointerTy())
-        return std::nullopt;
-      Value = Operand;
-      continue;
+      if (Operand->getType()->isIntOrIntVectorTy() ||
+          Operand->getType()->isPointerTy()) {
+        Value = Operand;
+        continue;
+      }
+      return std::nullopt;
     }
     default:
       return std::nullopt;
