@@ -91,6 +91,51 @@ CodeGenFunction::CodeGenFunction(CodeGenModule &cgm, bool suppressNewContext)
   SetFastMathFlags(CurFPFeatures);
 }
 
+void CodeGenFunction::recordWasmFunctionPointerProvenance(
+    llvm::Value *IntegerValue, llvm::Value *FunctionPointer,
+    QualType FunctionPointerType) {
+  if (!IntegerValue || !FunctionPointer ||
+      !FunctionPointerType->isFunctionPointerType())
+    return;
+
+  WasmFunctionPointerProvenanceMap[IntegerValue] = {FunctionPointer,
+                                                    FunctionPointerType};
+}
+
+std::optional<CodeGenFunction::WasmFunctionPointerProvenance>
+CodeGenFunction::getWasmFunctionPointerProvenance(llvm::Value *Value) const {
+  llvm::SmallPtrSet<llvm::Value *, 8> Visited;
+
+  while (Value && Visited.insert(Value).second) {
+    if (auto It = WasmFunctionPointerProvenanceMap.find(Value);
+        It != WasmFunctionPointerProvenanceMap.end())
+      return It->second;
+
+    auto *Cast = dyn_cast<llvm::Operator>(Value);
+    if (!Cast)
+      break;
+
+    switch (Cast->getOpcode()) {
+    case llvm::Instruction::Trunc:
+    case llvm::Instruction::ZExt:
+    case llvm::Instruction::SExt:
+    case llvm::Instruction::BitCast:
+    case llvm::Instruction::PtrToInt: {
+      llvm::Value *Operand = Cast->getOperand(0);
+      if (!Operand->getType()->isIntOrIntVectorTy() &&
+          !Operand->getType()->isPointerTy())
+        return std::nullopt;
+      Value = Operand;
+      continue;
+    }
+    default:
+      return std::nullopt;
+    }
+  }
+
+  return std::nullopt;
+}
+
 CodeGenFunction::~CodeGenFunction() {
   assert(LifetimeExtendedCleanupStack.empty() && "failed to emit a cleanup");
   assert(DeferredDeactivationCleanupStack.empty() &&

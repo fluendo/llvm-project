@@ -2820,6 +2820,27 @@ Value *ScalarExprEmitter::VisitCastExpr(CastExpr *CE) {
     llvm::Value* IntResult =
       Builder.CreateIntCast(Src, MiddleTy, InputSigned, "conv");
 
+    if (CGF.CGM.getTriple().isWasm() &&
+        CGF.CGM.getLangOpts().WasmFixFunctionBitcasts &&
+        DestTy->isFunctionPointerType()) {
+      if (auto Provenance = CGF.getWasmFunctionPointerProvenance(IntResult)) {
+        llvm::Value *FnPtr = Provenance->FunctionPointer;
+        QualType FnPtrType = Provenance->FunctionPointerType;
+
+        if (llvm::Function *Thunk =
+                CGF.CGM.getTargetCodeGenInfo().getOrCreateWasmFunctionPointerThunk(
+                    CGF.CGM, FnPtr, FnPtrType, DestTy))
+          return Thunk;
+
+        if (!isa<llvm::Constant>(FnPtr)) {
+          if (llvm::Value *RuntimeThunk = CGF.CGM.getTargetCodeGenInfo()
+                                              .emitWasmRuntimeFunctionPointerBinding(
+                                                  CGF, FnPtr, FnPtrType, DestTy))
+            return RuntimeThunk;
+        }
+      }
+    }
+
     auto *IntToPtr = Builder.CreateIntToPtr(IntResult, DestLLVMTy);
 
     if (CGF.CGM.getCodeGenOpts().StrictVTablePointers) {
@@ -2846,7 +2867,14 @@ Value *ScalarExprEmitter::VisitCastExpr(CastExpr *CE) {
     }
 
     PtrExpr = CGF.authPointerToPointerCast(PtrExpr, E->getType(), DestTy);
-    return Builder.CreatePtrToInt(PtrExpr, ConvertType(DestTy));
+    llvm::Value *Result = Builder.CreatePtrToInt(PtrExpr, ConvertType(DestTy));
+
+    if (CGF.CGM.getTriple().isWasm() &&
+        CGF.CGM.getLangOpts().WasmFixFunctionBitcasts &&
+        E->getType()->isFunctionPointerType())
+      CGF.recordWasmFunctionPointerProvenance(Result, PtrExpr, E->getType());
+
+    return Result;
   }
   case CK_ToVoid: {
     CGF.EmitIgnoredExpr(E);

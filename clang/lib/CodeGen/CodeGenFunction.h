@@ -37,6 +37,7 @@
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/MapVector.h"
+#include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Frontend/OpenMP/OMPIRBuilder.h"
 #include "llvm/IR/Instructions.h"
@@ -649,6 +650,14 @@ public:
   /// A mapping from NRVO variables to the flags used to indicate
   /// when the NRVO has been applied to this variable.
   llvm::DenseMap<const VarDecl *, llvm::Value *> NRVOFlags;
+
+  struct WasmFunctionPointerProvenance {
+    llvm::Value *FunctionPointer = nullptr;
+    QualType FunctionPointerType;
+  };
+
+  llvm::DenseMap<llvm::Value *, WasmFunctionPointerProvenance>
+      WasmFunctionPointerProvenanceMap;
 
   EHScopeStack EHStack;
   llvm::SmallVector<char, 256> LifetimeExtendedCleanupStack;
@@ -5512,6 +5521,12 @@ public:
   llvm::Value *LoadPassedObjectSize(const Expr *E, QualType EltTy);
 
   void EmitSanitizerStatReport(llvm::SanitizerStatKind SSK);
+
+  void recordWasmFunctionPointerProvenance(llvm::Value *IntegerValue,
+                                           llvm::Value *FunctionPointer,
+                                           QualType FunctionPointerType);
+  std::optional<WasmFunctionPointerProvenance>
+  getWasmFunctionPointerProvenance(llvm::Value *Value) const;
 
   struct FMVResolverOption {
     llvm::Function *Function;
